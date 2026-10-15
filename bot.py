@@ -27,7 +27,6 @@ def run_flask():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-# Background thread start
 Thread(target=run_flask, daemon=True).start()
 
 # ----------------------------------------------------
@@ -341,10 +340,11 @@ def main():
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("add", add_deal_command))
     app.add_handler(CommandHandler("hold", hold_command))
-    app.add_handler(MessageHandler(filters.PHOTO & filters.caption_regex(r"/close"), close_deal_command))
+    app.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r"/close"), close_deal_command))
 
     print("⚡ Galaxy Escrow Bot Running Successfully...")
     app.run_polling()
 
 if __name__ == "__main__":
     main()
+    
