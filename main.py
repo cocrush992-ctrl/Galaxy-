@@ -20,13 +20,6 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     return "Galaxy Escrow Bot is Live 24/7!"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-Thread(target=run_flask, daemon=True).start()
-
 # CONFIGURATION
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 BOT_OWNER_ID = int(os.getenv("BOT_OWNER_ID", "123456789"))
@@ -508,10 +501,6 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # FIXED BACKGROUND POLLING (FAST & STABLE)
 # ----------------------------------------------------
 def run_telegram_bot():
-    import asyncio
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     application = Application.builder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start_command))
@@ -519,20 +508,22 @@ def run_telegram_bot():
     application.add_handler(CommandHandler("hold", hold_command))
     application.add_handler(CommandHandler("fetch", fetch_card_command))
     application.add_handler(CommandHandler("reboot", reboot_command))
-    application.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r"/close"), close_deal_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
 
-    print("⚡ Galaxy Escrow Bot Running with Background Polling...")
+    application.add_handler(
+        MessageHandler(
+            filters.PHOTO & filters.CaptionRegex(r"/close"),
+            close_deal_command
+        )
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handle_buttons
+        )
+    )
+
+    print("Galaxy Security Bot is starting...")
     application.run_polling(drop_pending_updates=True)
-
-def main():
-    # Start Telegram bot in a separate background thread so Flask keeps running smoothly
-    Thread(target=run_telegram_bot, daemon=True).start()
-    
-    # Keep main thread alive for Flask server (already started in Part 1)
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
 if __name__ == "__main__":
     main()
-    
