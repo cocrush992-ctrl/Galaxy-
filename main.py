@@ -504,22 +504,43 @@ async def handle_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for idx, (uname, deals, vol) in enumerate(records, 1):
             msg += f"<b>#{idx} @{uname}</b> — <b>{deals} Deals</b> | Volume: <b>₹{vol:,.2f}</b>\n"
         await update.message.reply_text(msg, parse_mode=ParseMode.HTML)
+# ----------------------------------------------------
+# WEBHOOK ROUTE & MAIN EXECUTION
+# ----------------------------------------------------
+telegram_app = None
 
-# MAIN EXECUTION
+@app.route(f"/{BOT_TOKEN}", methods=["POST"])
+def webhook():
+    from flask import request
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+        import asyncio
+        asyncio.run(telegram_app.process_update(update))
+    return "OK", 200
+
 def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+    global telegram_app
+    telegram_app = Application.builder().token(BOT_TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("add", add_deal_command))
-    app.add_handler(CommandHandler("hold", hold_command))
-    app.add_handler(CommandHandler("fetch", fetch_card_command))
-    app.add_handler(CommandHandler("reboot", reboot_command))
-    app.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r"/close"), close_deal_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
+    telegram_app.add_handler(CommandHandler("start", start_command))
+    telegram_app.add_handler(CommandHandler("add", add_deal_command))
+    telegram_app.add_handler(CommandHandler("hold", hold_command))
+    telegram_app.add_handler(CommandHandler("fetch", fetch_card_command))
+    telegram_app.add_handler(CommandHandler("reboot", reboot_command))
+    telegram_app.add_handler(MessageHandler(filters.PHOTO & filters.CaptionRegex(r"/close"), close_deal_command))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_buttons))
 
-    print("⚡ Galaxy Escrow Bot Running Successfully...")
-    app.run_polling()
+    # Initialize webhook automatically on startup
+    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
+    
+    if RENDER_EXTERNAL_URL:
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{BOT_TOKEN}"
+        import requests
+        requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={webhook_url}")
+        print(f"⚡ Webhook set to: {webhook_url}")
+
+    print("⚡ Galaxy Escrow Bot Running with Webhook...")
 
 if __name__ == "__main__":
     main()
-      
+    
